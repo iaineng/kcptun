@@ -158,6 +158,10 @@ func main() {
 			Usage: "disable compression",
 		},
 		cli.BoolFlag{
+			Name:  "zstd",
+			Usage: "use zstd compression instead of snappy",
+		},
+		cli.BoolFlag{
 			Name:   "acknodelay",
 			Usage:  "flush ack immediately when a packet is received",
 			Hidden: true,
@@ -268,6 +272,7 @@ func main() {
 		config.ParityShard = c.Int("parityshard")
 		config.DSCP = c.Int("dscp")
 		config.NoComp = c.Bool("nocomp")
+		config.Zstd = c.Bool("zstd")
 		config.AckNodelay = c.Bool("acknodelay")
 		config.NoDelay = c.Int("nodelay")
 		config.Interval = c.Int("interval")
@@ -348,7 +353,13 @@ func main() {
 		log.Println("nodelay parameters:", config.NoDelay, config.Interval, config.Resend, config.NoCongestion)
 		log.Println("remote address:", config.RemoteAddr)
 		log.Println("sndwnd:", config.SndWnd, "rcvwnd:", config.RcvWnd)
-		log.Println("compression:", !config.NoComp)
+		if config.NoComp {
+			log.Println("compression: disabled")
+		} else if config.Zstd {
+			log.Println("compression: zstd")
+		} else {
+			log.Println("compression: snappy")
+		}
 		log.Println("mtu:", config.MTU)
 		log.Println("ratelimit:", config.RateLimit)
 		log.Println("datashard:", config.DataShard, "parityshard:", config.ParityShard)
@@ -475,6 +486,12 @@ func main() {
 			var session *smux.Session
 			if config.NoComp {
 				session, err = smux.Client(kcpconn, smuxConfig)
+			} else if config.Zstd {
+				zs, zerr := std.NewZstdStream(kcpconn)
+				if zerr != nil {
+					return nil, errors.Wrap(zerr, "NewZstdStream()")
+				}
+				session, err = smux.Client(zs, smuxConfig)
 			} else {
 				session, err = smux.Client(std.NewCompStream(kcpconn), smuxConfig)
 			}
