@@ -43,6 +43,7 @@ type Config struct {
 	DSCP         int    `json:"dscp"`
 	NoComp       bool   `json:"nocomp"`
 	Zstd         bool   `json:"zstd"`
+	ZstdWindow   int    `json:"zstdwindow"`
 	AckNodelay   bool   `json:"acknodelay"`
 	NoDelay      int    `json:"nodelay"`
 	Interval     int    `json:"interval"`

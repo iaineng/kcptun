@@ -78,17 +78,17 @@ func (c *ZstdStream) SetWriteDeadline(t time.Time) error {
 }
 
 // NewZstdStream creates a new stream that compresses data using zstd
-func NewZstdStream(conn net.Conn) (*ZstdStream, error) {
+func NewZstdStream(conn net.Conn, windowSize int) (*ZstdStream, error) {
 	c := new(ZstdStream)
 	c.conn = conn
 
 	var err error
-	c.w, err = zstd.NewWriter(conn, zstd.WithEncoderConcurrency(1), zstd.WithEncoderLevel(zstd.SpeedBestCompression), zstd.WithWindowSize(32<<20))
+	c.w, err = zstd.NewWriter(conn, zstd.WithEncoderConcurrency(1), zstd.WithEncoderLevel(zstd.SpeedBestCompression), zstd.WithWindowSize(windowSize))
 	if err != nil {
 		return nil, errors.Wrap(err, "zstd.NewWriter")
 	}
 
-	c.r, err = zstd.NewReader(conn, zstd.WithDecoderMaxWindow(32<<20))
+	c.r, err = zstd.NewReader(conn, zstd.WithDecoderMaxWindow(uint64(windowSize)))
 	if err != nil {
 		return nil, errors.Wrap(err, "zstd.NewReader")
 	}
