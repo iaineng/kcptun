@@ -160,6 +160,11 @@ func main() {
 			Name:  "zstd",
 			Usage: "use zstd compression instead of snappy",
 		},
+		cli.IntFlag{
+			Name:  "zstdwindow",
+			Value: 32,
+			Usage: "zstd window size in MB",
+		},
 		cli.BoolFlag{
 			Name:   "acknodelay",
 			Usage:  "flush ack immediately when a packet is received",
@@ -272,6 +277,7 @@ func main() {
 		config.DSCP = c.Int("dscp")
 		config.NoComp = c.Bool("nocomp")
 		config.Zstd = c.Bool("zstd")
+		config.ZstdWindow = c.Int("zstdwindow")
 		config.AckNodelay = c.Bool("acknodelay")
 		config.NoDelay = c.Int("nodelay")
 		config.Interval = c.Int("interval")
@@ -347,7 +353,7 @@ func main() {
 		if config.NoComp {
 			log.Println("compression: disabled")
 		} else if config.Zstd {
-			log.Println("compression: zstd")
+			log.Printf("compression: zstd (window: %dMB)", config.ZstdWindow)
 		} else {
 			log.Println("compression: snappy")
 		}
@@ -498,7 +504,7 @@ func createConn(config *Config, block kcp.BlockCrypt) (*smux.Session, error) {
 	if config.NoComp {
 		session, err = smux.Client(kcpconn, smuxConfig)
 	} else if config.Zstd {
-		zs, zerr := std.NewZstdStream(kcpconn)
+		zs, zerr := std.NewZstdStream(kcpconn, config.ZstdWindow<<20)
 		if zerr != nil {
 			kcpconn.Close()
 			return nil, errors.Wrap(zerr, "NewZstdStream()")
